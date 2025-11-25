@@ -1,0 +1,31 @@
+name: Deploy Snowflake SQL
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install SnowSQL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y snowflake-snowsql
+
+      - name: Run Snowflake Deploy SQL
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+          SNOWFLAKE_PRIVATE_KEY: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
+        run: |
+          snowsql \
+          -a $SNOWFLAKE_ACCOUNT \
+          -u $SNOWFLAKE_USER \
+          -k $SNOWFLAKE_PRIVATE_KEY \
+          -f sql/deploy.sql
