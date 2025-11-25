@@ -1,40 +1,57 @@
 name: Deploy to Snowflake
-
+ 
 on:
   push:
     branches:
       - main
-
+ 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
+ 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-
-      - name: Install SnowSQL (Official Script)
+ 
+      - name: Install Python + Snowflake Connector
         run: |
-          wget https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.2/linux_x86_64/snowsql-1.2.28-linux_x86_64.bash
-          bash snowsql-1.2.28-linux_x86_64.bash -y
-          echo "$HOME/.snowsql/bin" >> $GITHUB_PATH
-
-      - name: Run Snowflake deploy.sql
+          python3 -m pip install --upgrade pip
+          pip install snowflake-connector-python
+ 
+      - name: Run deploy.sql using Python
         env:
           SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
           SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
-          SNOWFLAKE_PRIVATE_KEY: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
           SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
-          SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+          SNOWFLAKE_PRIVATE_KEY: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
           SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
           SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
+          SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
         run: |
-          snowsql \
-            -a $SNOWFLAKE_ACCOUNT \
-            -u $SNOWFLAKE_USER \
-            -k $SNOWFLAKE_PRIVATE_KEY \
-            -r $SNOWFLAKE_ROLE \
-            -w $SNOWFLAKE_WAREHOUSE \
-            -d $SNOWFLAKE_DATABASE \
-            -s $SNOWFLAKE_SCHEMA \
-            -f sql/deploy.sql
+          python3 << 'EOF'
+          import snowflake.connector
+          import os
+ 
+          private_key = os.environ['SNOWFLAKE_PRIVATE_KEY'].replace("\\n", "\n")
+ 
+          ctx = snowflake.connector.connect(
+              user=os.environ['SNOWFLAKE_USER'],
+              account=os.environ['SNOWFLAKE_ACCOUNT'],
+              warehouse=os.environ['SNOWFLAKE_WAREHOUSE'],
+              database=os.environ['SNOWFLAKE_DATABASE'],
+              schema=os.environ['SNOWFLAKE_SCHEMA'],
+              role=os.environ['SNOWFLAKE_ROLE'],
+              private_key=private_key.encode()
+          )
+ 
+          cs = ctx.cursor()
+          with open("sql/deploy.sql", "r") as f:
+              sql_commands = f.read()
+ 
+          for statement in sql_commands.split(";"):
+              if statement.strip():
+                  cs.execute(statement)
+ 
+          cs.close()
+          ctx.close()
+          EOF
