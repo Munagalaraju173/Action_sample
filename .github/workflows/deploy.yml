@@ -1,4 +1,4 @@
-name: Deploy Snowflake SQL
+name: Deploy to Snowflake
 
 on:
   push:
@@ -18,14 +18,22 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y snowflake-snowsql
 
-      - name: Run Snowflake Deploy SQL
+      - name: Run Snowflake deploy.sql
         env:
           SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
           SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
           SNOWFLAKE_PRIVATE_KEY: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
+          SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
+          SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+          SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
+          SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
         run: |
           snowsql \
-          -a $SNOWFLAKE_ACCOUNT \
-          -u $SNOWFLAKE_USER \
-          -k $SNOWFLAKE_PRIVATE_KEY \
-          -f sql/deploy.sql
+            -a $SNOWFLAKE_ACCOUNT \
+            -u $SNOWFLAKE_USER \
+            -k $SNOWFLAKE_PRIVATE_KEY \
+            -r $SNOWFLAKE_ROLE \
+            -w $SNOWFLAKE_WAREHOUSE \
+            -d $SNOWFLAKE_DATABASE \
+            -s $SNOWFLAKE_SCHEMA \
+            -f sql/deploy.sql
