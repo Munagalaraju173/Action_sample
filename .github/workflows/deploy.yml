@@ -13,10 +13,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Install SnowSQL
+      - name: Install SnowSQL (Official Script)
         run: |
-          sudo apt-get update
-          sudo apt-get install -y snowflake-snowsql
+          wget https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.2/linux_x86_64/snowsql-1.2.28-linux_x86_64.bash
+          bash snowsql-1.2.28-linux_x86_64.bash -y
+          echo "$HOME/.snowsql/bin" >> $GITHUB_PATH
 
       - name: Run Snowflake deploy.sql
         env:
